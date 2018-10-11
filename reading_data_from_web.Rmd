@@ -1,0 +1,111 @@
+---
+title: "Reading data from the web"
+author: "Jeff Goldsmith"
+date: "10/11/2018"
+output: github_document
+---
+
+```{r, include = FALSE}
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_bw() + theme(legend.position = "bottom"))
+```
+
+Load some packages.
+
+```{r}
+library(rvest)
+library(httr)
+```
+
+## Scrape a table
+
+First get the HTML. Read HTML is in the rvest package. 
+
+```{r}
+url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+drug_use_xml = read_html(url)
+
+drug_use_xml
+
+```
+
+Get the tables from the HTML. Pulls all the HTML objects labelled table. [[1]] gives the first element of a list. This can be changed to retrieve any of the subsequent tables. Slice lets you access rows of a dataset by number. 
+
+```{r}
+drug_use_xml %>%
+  html_nodes(css = "table") %>% 
+  .[[1]] %>% 
+  html_table() %>% 
+  slice(-1) %>% 
+  as_tibble() %>% View
+```
+
+## Learning assessment
+
+```{r}
+url2 = "https://www.bestplaces.net/cost_of_living/city/new_york/new_york" 
+cost_living_xml = read_html(url2)
+
+cost_living_xml %>% 
+  html_nodes(css = "table") %>% 
+  .[[1]] %>% 
+  html_table(header = TRUE)
+
+```
+
+## CSS Selectors
+
+Scraping data from IMDB: 
+
+```{r}
+hpsaga_html = read_html("https://www.imdb.com/list/ls000630791/")
+titles = hpsaga_html %>% 
+  html_nodes(css = ".lister-item-header a") %>% 
+  html_text()
+
+money = hpsaga_html %>% 
+  html_nodes(css = ".text-muted .ghost~ .text-muted+ span") %>% 
+  html_text()
+
+hpsaga_df = tibble(
+  title = titles,
+  gross_rev = money
+)
+```
+
+
+```{r}
+nap_dyn_html = read_html("https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1")
+nap_titles = nap_dyn_html %>% 
+  html_nodes(css = "#cm_cr-review_list .a-color-base") %>% 
+  html_text()
+
+star = nap_dyn_html %>% 
+  html_nodes(css = "#cm_cr-review_list .review-rating") %>% 
+  html_text()
+
+nap_dyn_df = tibble(
+  title = nap_titles,
+  star = star
+)
+
+```
+
+## Using an API
+
+Get the water data. This line of code can be reproduced by sending it to others because it is linking back to an API URL. 
+
+```{r}
+nyc_water = GET("https://data.cityofnewyork.us/resource/waf7-5gvc.csv") %>% 
+  content("parse")
+
+```
+
+
